@@ -1,0 +1,32 @@
+pip install pyarrow
+
+####################
+import base64
+import pandas as pd
+import pyarrow.flight as flight
+
+# === CONFIG ===
+DREMIO_HOST = "your-dremio-host.com"
+DREMIO_PORT = 32010
+USERNAME = "your_username"
+PASSWORD = "your_password"
+SQL_QUERY = 'SELECT path FROM sys."tables"'
+
+# === CONNECT ===
+encoded_creds = base64.b64encode(f"{USERNAME}:{PASSWORD}".encode()).decode()
+client = flight.FlightClient(f"grpc+tcp://{DREMIO_HOST}:{DREMIO_PORT}")
+
+# === AUTH & OPTIONS ===
+options = flight.FlightCallOptions(headers=[
+    ("authorization", f"Basic {encoded_creds}")
+])
+
+# === EXECUTE SQL ===
+flight_info = client.get_flight_info(flight.FlightDescriptor.for_command(SQL_QUERY), options)
+reader = client.do_get(flight_info.endpoints[0].ticket, options)
+table = reader.read_all()
+
+# === TO DATAFRAME ===
+df = table.to_pandas()
+print(df.head())  # Show first few rows
+
