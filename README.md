@@ -48,4 +48,4 @@ How to get the needed Data:
 - we are making an api.py file that contains the api functions needed to fetch data from precise endpoints
 - the api file is located under the datasets app and contains functions related to datasets (PDS and VDS) only.
 - the file contains the job endpoint functions, namely run_dremio_sql that consists of submit sql, polling and retrieving results once done
-- the code 
+Ammendment: API Being very Slow at Retrieving the sys tables, lets use JDBC instead (Jaydebi module of python) to submit the sql query and fetch outcome, it uses connexion class and cursor to fetch data.
