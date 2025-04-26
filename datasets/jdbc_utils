@@ -1,0 +1,54 @@
+import jaydebeapi
+import hashlib
+
+# === JDBC CONFIG ===
+JDBC_DRIVER = "com.dremio.jdbc.Driver"  # Confirm this matches your JAR
+JAR_PATH = "/path/to/dremio-jdbc-driver.jar"
+JDBC_HOST = "your-dremio-host.com"
+JDBC_PORT = "443"  # As per your setup behind the load balancer
+
+# Connection params including SSL and cert skipping
+JDBC_PARAMS = {
+    "user": "your_username",
+    "password": "your_password",
+    "ssl": "true",
+    "disableCertificateVerification": "true"
+}
+
+# === Build JDBC URL from params ===
+def build_jdbc_url(params):
+    param_str = ";".join(f"{k}={v}" for k, v in params.items())
+    return f"jdbc:dremio:direct={JDBC_HOST}:{JDBC_PORT};{param_str}"
+
+# === MD5 hash generator for path ===
+def generate_hash(path):
+    return hashlib.md5(path.encode()).hexdigest()
+
+# === Fetcher function ===
+def fetch_paths_from_dremio(sql_query):
+    url = build_jdbc_url(JDBC_PARAMS)
+
+    conn = jaydebeapi.connect(
+        JDBC_DRIVER,
+        url,
+        [],  # Empty list since credentials are already in the URL
+        JAR_PATH
+    )
+    cursor = conn.cursor()
+    cursor.execute(sql_query)
+
+    rows = cursor.fetchall()
+    datasets = []
+
+    for row in rows:
+        path = "/".join(row)
+        datasets.append({
+            "path": path,
+            "hash": generate_hash(path),
+            "name": row[-1],
+            "full_path_list": row
+        })
+
+    cursor.close()
+    conn.close()
+    return datasets
