@@ -1,5 +1,6 @@
 import jaydebeapi
 import hashlib
+import ast
 
 # === JDBC CONFIG ===
 JDBC_DRIVER = "com.dremio.jdbc.Driver"  # Confirm this matches your JAR
@@ -41,12 +42,21 @@ def fetch_paths_from_dremio(sql_query):
     datasets = []
 
     for row in rows:
-        path = "/".join(row)
+        raw_path_string = row[0]  # Example: '["source", "folder", "table"]'
+        raw_path_string = (
+        raw_path_string
+        .replace('"','')
+        .replace('[', '["')
+        .replace(']', '"]')
+        .replace(', ', '", "')
+        )
+        path_list = ast.literal_eval(raw_path_string)  # 🔥 Safely converts string to list
+        path = "/".join(path_list)
         datasets.append({
             "path": path,
             "hash": generate_hash(path),
-            "name": row[-1],
-            "full_path_list": row
+            "name": path_list[-1],
+            "full_path_list": path_list
         })
 
     cursor.close()
